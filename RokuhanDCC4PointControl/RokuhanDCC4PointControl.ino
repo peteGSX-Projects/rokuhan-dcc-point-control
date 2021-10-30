@@ -12,6 +12,8 @@ See the README for the full list of features and instructions.
 // Print every turnout call-back message
 #define NOTIFY_TURNOUT_MSG
 
+//#define NOTIFY_DCC_MSG
+
 // Print debug messages
 #define DEBUG_MSG
 
