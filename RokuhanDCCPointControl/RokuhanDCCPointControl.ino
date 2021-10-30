@@ -1,5 +1,5 @@
 /*************************************************************
-Arduino Rokuhan DCC 4 Point Controller.
+Arduino Rokuhan DCC Point Controller.
 
 This uses motor controllers to control Rokuhan points and works with either:
 - The L298 based FunduMoto "buzzer" type motor shield for two sets of points
