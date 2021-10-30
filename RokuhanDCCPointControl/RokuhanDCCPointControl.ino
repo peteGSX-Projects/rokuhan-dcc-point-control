@@ -24,8 +24,8 @@ NmraDcc  Dcc;
 DCC_MSG  Packet;
 
 // Define the motor controller in use, uncomment the appropriate one only (not both)
-//#define FUNDUMOTO                             // Use this for two points with the FunduMoto shield
-#define L293D                                 // Use this for four points with the L293D ICs
+#define FUNDUMOTO                             // Use this for two points with the FunduMoto shield
+//#define L293D                                 // Use this for four points with the L293D ICs
 
 // Define our global variables
 #define DCC_PIN     2                         // DCC input interupt pin
