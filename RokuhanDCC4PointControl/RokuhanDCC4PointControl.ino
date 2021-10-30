@@ -3,35 +3,40 @@ Arduino Rokuhan DCC 4 Point Controller.
 
 This uses two L293D motor controllers to control 4 Rokuhan points.
 
+This is based on these example sketches supplied with the NMRA DCC library:
+- NmraDccAccessoryDecoder_1
+- NmraDccAccessoryDecoder_Pulsed_8
+
 See the README for the full list of features and instructions.
 *************************************************************/
 
+// Include the NMRA DCC library
 #include <NmraDcc.h>
 
-// This Example shows how to use the library as a DCC Accessory Decoder or a DCC Signalling Decoder
-// It responds to both the normal DCC Turnout Control packets and the newer DCC Signal Aspect packets 
-// You can also print every DCC packet by uncommenting the "#define NOTIFY_DCC_MSG" line below
-
+// Create our objects
 NmraDcc  Dcc;
 DCC_MSG  Packet;
-uint16_t BaseTurnoutAddress;
 
-// Define the Arduino input Pin number for the DCC Signal and ACK pin
-#define DCC_PIN     2
-const int DccAckPin = A1;
+// Define our global variables
+#define DCC_PIN     2                         // DCC input interupt pin
+const int DccAckPin = A1;                     // DCC ACK output pin
+uint16_t BaseTurnoutAddress;                  // First turnout base address
 
+// Define the struct for CVs
 struct CVPair
 {
   uint16_t  CV;
   uint8_t   Value;
 };
 
+// Define the factory default address CV pair (key, value)
 CVPair FactoryDefaultCVs [] =
 {
   {CV_ACCESSORY_DECODER_ADDRESS_LSB, DEFAULT_ACCESSORY_DECODER_ADDRESS & 0xFF},
   {CV_ACCESSORY_DECODER_ADDRESS_MSB, DEFAULT_ACCESSORY_DECODER_ADDRESS >> 8},
 };
 
+// Define the index in the array that holds the factory default CVs
 uint8_t FactoryDefaultCVIndex = 0;
 
 void notifyCVResetFactoryDefault()
@@ -67,21 +72,6 @@ void notifyDccMsg( DCC_MSG * Msg)
 }
 #endif
 
-/*
-// This function is called whenever a normal DCC Turnout Packet is received and we're in Board Addressing Mode
-void notifyDccAccTurnoutBoard( uint16_t BoardAddr, uint8_t OutputPair, uint8_t Direction, uint8_t OutputPower )
-{
-  Serial.print("notifyDccAccTurnoutBoard: ") ;
-  Serial.print(BoardAddr,DEC) ;
-  Serial.print(',');
-  Serial.print(OutputPair,DEC) ;
-  Serial.print(',');
-  Serial.print(Direction,DEC) ;
-  Serial.print(',');
-  Serial.println(OutputPower, HEX) ;
-}
-*/
-
 // This function is called whenever a normal DCC Turnout Packet is received and we're in Output Addressing Mode
 void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t OutputPower )
 {
@@ -93,17 +83,6 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
   Serial.println(OutputPower, HEX);
 }
 
-/*
-// This function is called whenever a DCC Signal Aspect Packet is received
-void notifyDccSigOutputState( uint16_t Addr, uint8_t State)
-{
-  Serial.print("notifyDccSigOutputState: ") ;
-  Serial.print(Addr,DEC) ;
-  Serial.print(',');
-  Serial.println(State, HEX) ;
-}
-*/
-
 void setup()
 {
   Serial.begin(115200);
@@ -111,7 +90,7 @@ void setup()
   // Configure the DCC CV Programing ACK pin for an output
   pinMode( DccAckPin, OUTPUT );
 
-  Serial.println("NMRA DCC Example 1");
+  Serial.println("NMRA DCC Rokuhan Turnout Controller");
   
   // Setup which External Interrupt, the Pin it's associated with that we're using and enable the Pull-Up
   // Many Arduino Cores now support the digitalPinToInterrupt() function that makes it easier to figure out the
