@@ -25,7 +25,7 @@ DCC_MSG  Packet;
 
 // Define the motor controller in use, uncomment the appropriate one only (not both)
 #define MOTOR_CONTROLLER FUNDUMOTO            // Use this for two points with the FunduMoto shield
-//#define MOTOR_CONTROLLER L293D              // Use this for four points with the L293D ICs
+//#define MOTOR_CONTROLLER L293D                // Use this for four points with the L293D ICs
 
 // Define our global variables
 #define DCC_PIN     2                         // DCC input interupt pin
@@ -39,24 +39,26 @@ uint16_t BaseTurnoutAddress;                  // First turnout address
 #if MOTOR_CONTROLLER == FUNDUMOTO
   #define NUM_TURNOUTS 2
   typedef struct {
-  byte directionPin1;                   // pin to connect to input 1/3 on the L293D
-  byte directionPin2;                   // pin to connect to input 2/4 on the L293D
-  byte speedPin;                        // pin to connect to enable 1/2 on the L293D
-  byte currentDirection;                // current direction of the point (LOW = through, HIGH = branch)
-  byte newDirection;                    // new direction of the point (LOW = through, HIGH = branch)
-  unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
-  unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
-} point_def;
+    byte directionPin;                    // pin to control direction
+    byte speedPin;                        // pin to control speed
+    byte currentDirection;                // current direction of the point (LOW = close, HIGH = throw)
+    byte newDirection;                    // new direction of the point (LOW = close, HIGH = throw)
+    unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
+    unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
+  } point_def;
+  point_def points[NUM_TURNOUTS];
 #elif MOTOR_CONTROLLER == L293D
   #define NUM_TURNOUTS 4
   typedef struct {
-  byte directionPin1;                   // pin to connect to input 1/3 on the L293D
-  byte directionPin2;                   // pin to connect to input 2/4 on the L293D
-  byte speedPin;                        // pin to connect to enable 1/2 on the L293D
-  byte currentDirection;                // current direction of the point (LOW = through, HIGH = branch)
-  byte newDirection;                    // new direction of the point (LOW = through, HIGH = branch)
-  unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
-  unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
+    byte directionPin1;                   // pin to connect to input 1/3 on the L293D
+    byte directionPin2;                   // pin to connect to input 2/4 on the L293D
+    byte speedPin;                        // pin to connect to enable 1/2 on the L293D
+    byte currentDirection;                // current direction of the point (LOW = close, HIGH = throw)
+    byte newDirection;                    // new direction of the point (LOW = close, HIGH = throw)
+    unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
+    unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
+  } point_def;
+  point_def points[NUM_TURNOUTS];
 #endif
 
 // Define the struct for CVs
@@ -120,6 +122,27 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
   Serial.println(OutputPower, HEX);
 }
 
+void initTurnouts() {
+  // Function to initialise the turnout pins etc.
+  for (uint8_t i = 0; i < (NUM_TURNOUTS); i++) {
+    #if MOTOR_CONTROLLER == FUNDUMOTO
+      Serial.println((String)"Initialising FunduMoto turnout " + i);
+    #elif MOTOR_CONTROLLER == L293D
+      Serial.println((String)"Initialising L293D turnout " + i);
+    #endif
+  }
+  
+}
+
+void processTurnouts() {
+  // Function to process the turnouts and switch them if necessary
+  #if MOTOR_CONTROLLER == FUNDUMOTO
+    Serial.println("Processing FunduMoto turnouts");
+  #elif MOTOR_CONTROLLER == L293D
+    Serial.println("Processing L293D turnouts");
+  #endif
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -143,7 +166,8 @@ void setup()
   Dcc.init( MAN_ID_DIY, 10, CV29_ACCESSORY_DECODER | CV29_OUTPUT_ADDRESS_MODE, 0 );
 
   BaseTurnoutAddress = (((Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB) * 64) + Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB) - 1) * 4) + 1  ;
-
+  // Initialise our turnouts
+  initTurnouts();
   Serial.println((String)"Init Done, base turnout address is: " + BaseTurnoutAddress);
 }
 
@@ -151,7 +175,8 @@ void loop()
 {
   // You MUST call the NmraDcc.process() method frequently from the Arduino loop() function for correct library operation
   Dcc.process();
-  
+  // Process turnouts to ensure switching happens
+  processTurnouts();
   if( FactoryDefaultCVIndex && Dcc.isSetCVReady())
   {
     FactoryDefaultCVIndex--; // Decrement first as initially it is the size of the array 
