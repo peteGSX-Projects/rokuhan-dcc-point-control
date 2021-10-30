@@ -32,6 +32,33 @@ DCC_MSG  Packet;
 const int DccAckPin = A1;                     // DCC ACK output pin
 uint16_t BaseTurnoutAddress;                  // First turnout address
 
+// Define decoder version
+#define DCC_DECODER_VERSION_NUM 1
+
+// Define number of turnouts and turnout struct based on motor controller in use
+#if MOTOR_CONTROLLER == FUNDUMOTO
+  #define NUM_TURNOUTS 2
+  typedef struct {
+  byte directionPin1;                   // pin to connect to input 1/3 on the L293D
+  byte directionPin2;                   // pin to connect to input 2/4 on the L293D
+  byte speedPin;                        // pin to connect to enable 1/2 on the L293D
+  byte currentDirection;                // current direction of the point (LOW = through, HIGH = branch)
+  byte newDirection;                    // new direction of the point (LOW = through, HIGH = branch)
+  unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
+  unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
+} point_def;
+#elif MOTOR_CONTROLLER == L293D
+  #define NUM_TURNOUTS 4
+  typedef struct {
+  byte directionPin1;                   // pin to connect to input 1/3 on the L293D
+  byte directionPin2;                   // pin to connect to input 2/4 on the L293D
+  byte speedPin;                        // pin to connect to enable 1/2 on the L293D
+  byte currentDirection;                // current direction of the point (LOW = through, HIGH = branch)
+  byte newDirection;                    // new direction of the point (LOW = through, HIGH = branch)
+  unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
+  unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
+#endif
+
 // Define the struct for CVs
 struct CVPair
 {
@@ -101,6 +128,7 @@ void setup()
   pinMode( DccAckPin, OUTPUT );
 
   Serial.println("NMRA DCC Rokuhan Turnout Controller");
+  Serial.println((String)"Configured to control " + NUM_TURNOUTS + " turnouts");
   
   // Setup which External Interrupt, the Pin it's associated with that we're using and enable the Pull-Up
   // Many Arduino Cores now support the digitalPinToInterrupt() function that makes it easier to figure out the
@@ -114,7 +142,9 @@ void setup()
   // Call the main DCC Init function to enable the DCC Receiver
   Dcc.init( MAN_ID_DIY, 10, CV29_ACCESSORY_DECODER | CV29_OUTPUT_ADDRESS_MODE, 0 );
 
-  Serial.println("Init Done");
+  BaseTurnoutAddress = (((Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB) * 64) + Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB) - 1) * 4) + 1  ;
+
+  Serial.println((String)"Init Done, base turnout address is: " + BaseTurnoutAddress);
 }
 
 void loop()
