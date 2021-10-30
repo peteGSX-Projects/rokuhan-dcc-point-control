@@ -24,8 +24,8 @@ NmraDcc  Dcc;
 DCC_MSG  Packet;
 
 // Define the motor controller in use, uncomment the appropriate one only (not both)
-#define MOTOR_CONTROLLER FUNDUMOTO            // Use this for two points with the FunduMoto shield
-//#define MOTOR_CONTROLLER L293D                // Use this for four points with the L293D ICs
+//#define FUNDUMOTO                             // Use this for two points with the FunduMoto shield
+#define L293D                                 // Use this for four points with the L293D ICs
 
 // Define our global variables
 #define DCC_PIN     2                         // DCC input interupt pin
@@ -36,7 +36,7 @@ uint16_t BaseTurnoutAddress;                  // First turnout address
 #define DCC_DECODER_VERSION_NUM 1
 
 // Define number of turnouts and turnout struct based on motor controller in use
-#if MOTOR_CONTROLLER == FUNDUMOTO
+#ifdef FUNDUMOTO
   #define NUM_TURNOUTS 2
   typedef struct {
     byte directionPin;                    // pin to control direction
@@ -47,7 +47,7 @@ uint16_t BaseTurnoutAddress;                  // First turnout address
     unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
   } point_def;
   point_def points[NUM_TURNOUTS];
-#elif MOTOR_CONTROLLER == L293D
+#elif defined(L293D)
   #define NUM_TURNOUTS 4
   typedef struct {
     byte directionPin1;                   // pin to connect to input 1/3 on the L293D
@@ -120,14 +120,18 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
   Serial.print(Direction,DEC);
   Serial.print(',');
   Serial.println(OutputPower, HEX);
+  // If the address of the DCC turnout is one of these, act on it
+  if(( Addr >= BaseTurnoutAddress ) && ( Addr < (BaseTurnoutAddress + NUM_TURNOUTS )) && OutputPower ) {
+    Serial.println((String)"Set turnout at address " + Addr + " to " + Direction);
+  }
 }
 
 void initTurnouts() {
   // Function to initialise the turnout pins etc.
   for (uint8_t i = 0; i < (NUM_TURNOUTS); i++) {
-    #if MOTOR_CONTROLLER == FUNDUMOTO
+    #ifdef FUNDUMOTO
       Serial.println((String)"Initialising FunduMoto turnout " + i);
-    #elif MOTOR_CONTROLLER == L293D
+    #elif defined(L293D)
       Serial.println((String)"Initialising L293D turnout " + i);
     #endif
   }
@@ -136,10 +140,10 @@ void initTurnouts() {
 
 void processTurnouts() {
   // Function to process the turnouts and switch them if necessary
-  #if MOTOR_CONTROLLER == FUNDUMOTO
-    Serial.println("Processing FunduMoto turnouts");
-  #elif MOTOR_CONTROLLER == L293D
-    Serial.println("Processing L293D turnouts");
+  #ifdef FUNDUMOTO
+    //Serial.println("Processing FunduMoto turnouts");
+  #elif defined(L293D)
+    //Serial.println("Processing L293D turnouts");
   #endif
 }
 
@@ -149,9 +153,12 @@ void setup()
   
   // Configure the DCC CV Programing ACK pin for an output
   pinMode( DccAckPin, OUTPUT );
-
   Serial.println("NMRA DCC Rokuhan Turnout Controller");
-  Serial.println((String)"Configured to control " + NUM_TURNOUTS + " turnouts");
+  #ifdef FUNDUMOTO
+    Serial.println((String)"Configured for FunduMoto controller to control " + NUM_TURNOUTS + " turnouts");
+  #elif defined(L293D)
+    Serial.println((String)"Configured for L293D controller to control " + NUM_TURNOUTS + " turnouts");
+  #endif
   
   // Setup which External Interrupt, the Pin it's associated with that we're using and enable the Pull-Up
   // Many Arduino Cores now support the digitalPinToInterrupt() function that makes it easier to figure out the
