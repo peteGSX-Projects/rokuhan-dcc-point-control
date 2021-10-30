@@ -1,7 +1,13 @@
 /*************************************************************
 Arduino Rokuhan DCC 4 Point Controller.
 
-This uses two L293D motor controllers to control 4 Rokuhan points.
+This uses motor controllers to control Rokuhan points and works with either:
+- The L298 based FunduMoto "buzzer" type motor shield for two sets of points
+- Two L293D motor control ICs for four sets of points
+
+Define the MOTOR_CONTROLLER variable to select the above option:
+- #define MOTOR_CONTROLLER FUNDUMOTO // Use this for two points with the FunduMoto shield
+- #define MOTOR_CONTROLLER L293D     // Use this for four points with the L293D ICs
 
 This is based on these example sketches supplied with the NMRA DCC library:
 - NmraDccAccessoryDecoder_1
@@ -17,10 +23,14 @@ See the README for the full list of features and instructions.
 NmraDcc  Dcc;
 DCC_MSG  Packet;
 
+// Define the motor controller in use, uncomment the appropriate one only (not both)
+#define MOTOR_CONTROLLER FUNDUMOTO            // Use this for two points with the FunduMoto shield
+//#define MOTOR_CONTROLLER L293D              // Use this for four points with the L293D ICs
+
 // Define our global variables
 #define DCC_PIN     2                         // DCC input interupt pin
 const int DccAckPin = A1;                     // DCC ACK output pin
-uint16_t BaseTurnoutAddress;                  // First turnout base address
+uint16_t BaseTurnoutAddress;                  // First turnout address
 
 // Define the struct for CVs
 struct CVPair
