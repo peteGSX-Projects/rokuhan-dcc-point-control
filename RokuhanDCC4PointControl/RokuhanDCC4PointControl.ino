@@ -16,7 +16,7 @@ See the README for the full list of features and instructions.
 #define DEBUG_MSG
 
 // If below is uncommented, it will force CVs to be written to the factory defaults
-#define FORCE_RESET_FACTORY_DEFAULT_CV
+//#define FORCE_RESET_FACTORY_DEFAULT_CV
 
 // Enable DCC ACK for programming and CV reading via port A1 (D15)
 #define ENABLE_DCC_ACK 15
@@ -28,7 +28,7 @@ See the README for the full list of features and instructions.
 #define NUM_TURNOUTS 4              // Set Number of Turnouts
 
 // DCC decoder version
-#define DCC_DECODER_VERSION_NUM 11
+#define DCC_DECODER_VERSION_NUM 1
 
 // Define the CV pair struct
 struct CVPair
@@ -85,32 +85,30 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
 #endif
 }
 
-/* This commented section is the initial 4 point code
 // define the structure for the definition of a point setup
 typedef struct {
   byte directionPin1;                   // pin to connect to input 1/3 on the L293D
   byte directionPin2;                   // pin to connect to input 2/4 on the L293D
   byte speedPin;                        // pin to connect to enable 1/2 on the L293D
-  byte switchPin;                       // pin to connect the direction switch button to
   byte currentDirection;                // current direction of the point (LOW = closed, HIGH = thrown)
   byte newDirection;                    // new direction of the point (LOW = closed, HIGH = thrown)
-  unsigned long lastSwitchMillis;       // variable for the last time it was switched
+  unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
+  unsigned long lastSwitchEndMillis;    // variable for the last time switching ended
 } point_def;
 
 point_def points[4];                    // set up an array to hold the point definitions above
 
 // define variables in use
 unsigned long currentMillis = 0;        // variable to hold the current Millis time
-long switchDelay = 25;                  // delay time in ms that the Rokuhan switch motor needs to be on to switch
-*/
+long switchingTime = 25;                // delay time in ms that the Rokuhan switch motor needs to be on to switch
+long switchingDelay = 100;              // delay time in ms between switching to avoid motor burnout
 
 void initTurnoutPins() {
-  /* This commented out section is the initial 4 point code
   // define our 4 points in use
-  points[0] = (point_def) {A4,A5,5,A0,LOW,LOW,0};
-  points[1] = (point_def) {4,7,6,A1,LOW,LOW,0};
-  points[2] = (point_def) {8,11,9,A2,LOW,LOW,0};
-  points[3] = (point_def) {12,13,10,A3,LOW,LOW,0};
+  points[0] = (point_def) {A4,A5,5,LOW,LOW,0,0};
+  points[1] = (point_def) {4,7,6,LOW,LOW,0,0};
+  points[2] = (point_def) {8,11,9,LOW,LOW,0,0};
+  points[3] = (point_def) {12,13,10,LOW,LOW,0,0};
 
   // set the correct pin mode and initial values for all defined pins (Switch object sets this for the button pins)
   for (int point = 0; point < 4; point++) {
@@ -122,10 +120,9 @@ void initTurnoutPins() {
     digitalWrite(points[point].directionPin2, LOW);
     analogWrite(points[point].speedPin, 0);
   }
-  */
 }
 
-void switchTurnout() {
+void processTurnouts() {
   /* This is the original loop from the 4 point controller code
   for (int point = 0; point < 4; point++) {
     currentMillis = millis();                                                 // record the current millis time
@@ -162,7 +159,7 @@ void switchTurnout() {
 void setup() {
   // Set up our serial output
   Serial.begin(115200);
-  Serial.println("Rokuhan 4 Point Controller");
+  Serial.println("Rokuhan DCC 4 Point Controller");
 
   // Setup which External Interrupt, the Pin it's associated with that we're using and enable the Pull-Up
   // Many Arduino Cores now support the digitalPinToInterrupt() function that makes it easier to figure out the
@@ -177,7 +174,7 @@ void setup() {
   Dcc.init( MAN_ID_DIY, DCC_DECODER_VERSION_NUM, CV29_ACCESSORY_DECODER, 0 );
 
 #ifdef DEBUG_MSG
-  Serial.print("\nNMRA DCC 8-Turnout Accessory Decoder. Ver: "); Serial.println(DCC_DECODER_VERSION_NUM,DEC);
+  Serial.print("\nNMRA DCC Rokuhan Turnout Decoder. Ver: "); Serial.println(DCC_DECODER_VERSION_NUM,DEC);
 #endif  
 
 #ifdef FORCE_RESET_FACTORY_DEFAULT_CV
@@ -192,8 +189,9 @@ void setup() {
 void loop() {
   // You MUST call the NmraDcc.process() method frequently from the Arduino loop() function for correct library operation
   Dcc.process();
-  
-  //pinPulser.process();
+
+  // Process our turnouts to make sure they're set correctly
+  processTurnouts();
   
   if( FactoryDefaultCVIndex && Dcc.isSetCVReady())
   {
