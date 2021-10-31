@@ -31,7 +31,7 @@ DCC_MSG  Packet;
 #define DCC_PIN     2                         // DCC input interupt pin
 const int DccAckPin = A1;                     // DCC ACK output pin
 uint16_t BaseTurnoutAddress;                  // First turnout address
-long switchingTime = 25;                      // Define the 25ms pulse required to switch
+long switchingPulse = 25;                     // Define the 25ms pulse required to switch
 long switchingDelay = 100;                    // Define 100ms delay between switching to avoid coil burnout
 
 // Define decoder version
@@ -133,12 +133,14 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
       if (Direction == 0 && points[point_ref].currentDirection == HIGH) {
         points[point_ref].newDirection = LOW;
         points[point_ref].lastSwitchStartMillis = currentDccMillis;
-        Serial.println((String)"Set turnout at address " + Addr + " (point " + point_ref + ") to " + Direction);
+        // Code here to start switching
+        Serial.println((String)"Setting turnout at address " + Addr + " (point " + point_ref + ") to " + Direction);
       // If our direction is 1 (throw) but our current direction is LOW (close), flag the change and record the time for pulsing
       } else if (Direction == 1 && points[point_ref].currentDirection == LOW) {
         points[point_ref].newDirection = HIGH;
         points[point_ref].lastSwitchStartMillis = currentDccMillis;
-        Serial.println((String)"Set turnout at address " + Addr + " (point " + point_ref + ") to " + Direction);
+        // Code here to start switching
+        Serial.println((String)"Setting turnout at address " + Addr + " (point " + point_ref + ") to " + Direction);
       }
       // This means if the DCC controller tells us to change to the current direction, we will do nothing
     }
@@ -175,7 +177,7 @@ void initTurnouts() {
 }
 
 void processTurnouts() {
-  // Function to process the turnouts and switch them if necessary
+  // Function to process the turnouts and stop the switching when pulse time is done
   unsigned long processMillis = millis();
   for (uint8_t point = 0; point < (NUM_TURNOUTS); point++) {
     
