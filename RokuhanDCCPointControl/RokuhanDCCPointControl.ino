@@ -122,29 +122,41 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
   Serial.println(OutputPower, HEX);
   // If the address of the DCC turnout is one of these, act on it
   if(( Addr >= BaseTurnoutAddress ) && ( Addr < (BaseTurnoutAddress + NUM_TURNOUTS )) && OutputPower ) {
-    Serial.println((String)"Set turnout at address " + Addr + " to " + Direction);
+    uint8_t point_ref = Addr - BaseTurnoutAddress;    // Calculate which array reference to use
+    Serial.println((String)"Set turnout at address " + Addr + " (point " + point_ref + ") to " + Direction);
+    #ifdef FUNDUMOTO
+      // If our new direction is the same and we switched long enough ago, set a new direction
+      
+    #elif defined(L293D)
+
+    #endif
   }
 }
 
 void initTurnouts() {
   // Function to initialise the turnout pins etc.
-  for (uint8_t i = 0; i < (NUM_TURNOUTS); i++) {
-    #ifdef FUNDUMOTO
-      Serial.println((String)"Initialising FunduMoto turnout " + i);
-    #elif defined(L293D)
-      Serial.println((String)"Initialising L293D turnout " + i);
-    #endif
-  }
-  
+  #ifdef FUNDUMOTO
+    Serial.println((String)"Initialising FunduMoto turnouts");
+    points[0] = (point_def) {12,10,LOW,LOW,0,0};
+    points[1] = (point_def) {13,11,LOW,LOW,0,0};
+  #elif defined(L293D)
+    Serial.println((String)"Initialising L293D turnouts");
+    points[0] = (point_def) {A4,A5,5,LOW,LOW,0,0};
+    points[1] = (point_def) {4,7,6,LOW,LOW,0,0};
+    points[2] = (point_def) {8,11,9,LOW,LOW,0,0};
+    points[3] = (point_def) {12,13,10,LOW,LOW,0,0};
+  #endif
 }
 
 void processTurnouts() {
   // Function to process the turnouts and switch them if necessary
-  #ifdef FUNDUMOTO
-    //Serial.println("Processing FunduMoto turnouts");
-  #elif defined(L293D)
-    //Serial.println("Processing L293D turnouts");
-  #endif
+  for (uint8_t i = 0; i < (NUM_TURNOUTS); i++) {
+    #ifdef FUNDUMOTO
+      
+    #elif defined(L293D)
+      
+    #endif
+  }
 }
 
 void setup()
@@ -153,7 +165,7 @@ void setup()
   
   // Configure the DCC CV Programing ACK pin for an output
   pinMode( DccAckPin, OUTPUT );
-  Serial.println("NMRA DCC Rokuhan Turnout Controller");
+  Serial.println((String)"NMRA DCC Rokuhan Turnout Controller version " + DCC_DECODER_VERSION_NUM);
   #ifdef FUNDUMOTO
     Serial.println((String)"Configured for FunduMoto controller to control " + NUM_TURNOUTS + " turnouts");
   #elif defined(L293D)
