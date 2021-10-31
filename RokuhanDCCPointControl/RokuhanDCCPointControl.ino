@@ -6,8 +6,8 @@ This uses motor controllers to control Rokuhan points and works with either:
 - Two L293D motor control ICs for four sets of points
 
 Define the MOTOR_CONTROLLER variable to select the above option:
-- #define MOTOR_CONTROLLER FUNDUMOTO // Use this for two points with the FunduMoto shield
-- #define MOTOR_CONTROLLER L293D     // Use this for four points with the L293D ICs
+- #define FUNDUMOTO // Use this for two points with the FunduMoto shield
+- #define L293D     // Use this for four points with the L293D ICs
 
 This is based on these example sketches supplied with the NMRA DCC library:
 - NmraDccAccessoryDecoder_1
@@ -19,7 +19,7 @@ See the README for the full list of features and instructions.
 // Include the NMRA DCC library
 #include <NmraDcc.h>
 
-// Create our objects
+// Create our DCC objects
 NmraDcc  Dcc;
 DCC_MSG  Packet;
 
@@ -124,25 +124,32 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
   Serial.println(OutputPower, HEX);
   // If the address of the DCC turnout is one of these, act on it
   if(( Addr >= BaseTurnoutAddress ) && ( Addr < (BaseTurnoutAddress + NUM_TURNOUTS )) && OutputPower ) {
-    uint8_t point_ref = Addr - BaseTurnoutAddress;    // Calculate which array reference to use
+    uint8_t point = Addr - BaseTurnoutAddress;    // Calculate which array reference to use
     unsigned long currentDccMillis = millis();
-    // If our turnout new and current position match, we finished switching,
-    // and if our delay to the next switching time has elapsed, flag the change
-    if (points[point_ref].currentDirection == points[point_ref].newDirection && currentDccMillis - points[point_ref].lastSwitchEndMillis > switchingDelay) {
-      // If our direction is 0 (close) but our current direction is HIGH (throw), flag the change and record the time for pulsing
-      if (Direction == 0 && points[point_ref].currentDirection == HIGH) {
-        points[point_ref].newDirection = LOW;
-        points[point_ref].lastSwitchStartMillis = currentDccMillis;
-        // Code here to start switching
-        Serial.println((String)"Setting turnout at address " + Addr + " (point " + point_ref + ") to " + Direction);
-      // If our direction is 1 (throw) but our current direction is LOW (close), flag the change and record the time for pulsing
-      } else if (Direction == 1 && points[point_ref].currentDirection == LOW) {
-        points[point_ref].newDirection = HIGH;
-        points[point_ref].lastSwitchStartMillis = currentDccMillis;
-        // Code here to start switching
-        Serial.println((String)"Setting turnout at address " + Addr + " (point " + point_ref + ") to " + Direction);
+    // Flag the change if our turnout's new and current position match, and if we've exceeded the delay to the next switching time
+    if (points[point].currentDirection == points[point].newDirection && currentDccMillis - points[point].lastSwitchEndMillis > switchingDelay) {
+      // If new direction is 0 (close) but our current direction is HIGH (throw), flag the change and record the time for pulsing
+      if (Direction == 0 && points[point].currentDirection == HIGH) {
+        points[point].newDirection = LOW;
+      // If new direction is 1 (throw) but our current direction is LOW (close), flag the change and record the time for pulsing
+      } else if (Direction == 1 && points[point].currentDirection == LOW) {
+        points[point].newDirection = HIGH;
       }
-      // This means if the DCC controller tells us to change to the current direction, we will do nothing
+      Serial.println((String)"Setting turnout at address " + Addr + " (point " + point + ") to " + Direction);
+      // Perform our pin digital write depending on motor config
+      #ifdef FUNDUMOTO
+        digitalWrite(points[point].directionPin, points[point].newDirection);
+      #elif defined(L293D)
+        if (points[point].newDirection == LOW) {
+          digitalWrite(points[point].directionPin1, HIGH);
+          digitalWrite(points[point].directionPin2, LOW);
+        } else if (points[point].newDirection == HIGH) {
+          digitalWrite(points[point].directionPin1, LOW);
+          digitalWrite(points[point].directionPin2, HIGH);
+      #endif
+      // Set speed to start switching and record when it started so we can pulse correctly
+      analogWrite(points[point].speedPin, 255);
+      points[point].lastSwitchStartMillis = currentDccMillis;
     }
   }
 }
@@ -169,7 +176,7 @@ void initTurnouts() {
       pinMode(points[point].directionPin1, OUTPUT);
       pinMode(points[point].directionPin2, OUTPUT);
       pinMode(points[point].speedPin, OUTPUT);
-      digitalWrite(points[point].directionPin1, LOW);
+      digitalWrite(points[point].directionPin1, HIGH);
       digitalWrite(points[point].directionPin2, LOW);
       analogWrite(points[point].speedPin, 0);
     }
@@ -180,12 +187,12 @@ void processTurnouts() {
   // Function to process the turnouts and stop the switching when pulse time is done
   unsigned long processMillis = millis();
   for (uint8_t point = 0; point < (NUM_TURNOUTS); point++) {
-    
-    #ifdef FUNDUMOTO
-      
-    #elif defined(L293D)
-      
-    #endif
+    if (points[point].currentDirection != points[point].newDirection && processMillis - points[point].lastSwitchStartMillis > switchingPulse) {
+      // Set speed to stop switching, update current direction, and record when switching finished to calculate delay for next switching
+      analogWrite(points[point].speedPin, 0);
+      points[point].currentDirection = points[point].newDirection;
+      points[point].lastSwitchEndMillis = processMillis;
+    }
   }
 }
 
