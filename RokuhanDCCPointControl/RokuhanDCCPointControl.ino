@@ -224,15 +224,16 @@ void setup()
   BaseTurnoutAddress = (((Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB) * 64) + Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB) - 1) * 4) + 1  ;
   // Initialise our turnouts
   initTurnouts();
-  Serial.println((String)"Init Done, base turnout address is: " + BaseTurnoutAddress);
+  uint8_t lastTurnout = NUM_TURNOUTS - 1;
+  Serial.println((String)"Init Done, base turnout address is: " + BaseTurnoutAddress + " and last turnout address is " + BaseTurnoutAddress + lastTurnout);
 }
 
 void loop()
 {
+  // Process turnouts to ensure switching happens, and do this before checking for DCC operations to ensure switching finishes in time
+  processTurnouts();
   // You MUST call the NmraDcc.process() method frequently from the Arduino loop() function for correct library operation
   Dcc.process();
-  // Process turnouts to ensure switching happens
-  processTurnouts();
   if( FactoryDefaultCVIndex && Dcc.isSetCVReady())
   {
     FactoryDefaultCVIndex--; // Decrement first as initially it is the size of the array 
