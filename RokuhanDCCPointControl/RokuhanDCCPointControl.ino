@@ -135,6 +135,14 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
       } else if (Direction == 1 && points[point].currentDirection == LOW) {
         points[point].newDirection = HIGH;
       }
+      Serial.println("Testing acting on subsequent same direction commands which should be ignored");
+      Serial.println((String)"currentDirection: " + points[point].currentDirection);
+      Serial.println((String)"newDirection: " + points[point].currentDirection);
+      Serial.println((String)"currentDccMillis: " + currentDccMillis);
+      Serial.println((String)"lastSwitchEndMillis: " + points[point].lastSwitchEndMillis);
+      long testMillis = currentDccMillis - points[point].lastSwitchEndMillis;
+      Serial.println((String)"currentDccMillis - lastSwitchEndMillies: " + testMillis);
+      Serial.println((String)"switchingDelay: " + switchingDelay);
       Serial.println((String)"Setting turnout at address " + Addr + " (point " + point + ") to " + Direction);
       // Perform our pin digital write depending on motor config
       #ifdef FUNDUMOTO
