@@ -128,36 +128,39 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
     unsigned long currentDccMillis = millis();
     // Flag the change if our turnout's new and current position match, and if we've exceeded the delay to the next switching time
     if (points[point].currentDirection == points[point].newDirection && currentDccMillis - points[point].lastSwitchEndMillis > switchingDelay) {
-      // If new direction is 0 (close) but our current direction is HIGH (throw), flag the change and record the time for pulsing
-      if (Direction == 0 && points[point].currentDirection == HIGH) {
-        points[point].newDirection = LOW;
-      // If new direction is 1 (throw) but our current direction is LOW (close), flag the change and record the time for pulsing
-      } else if (Direction == 1 && points[point].currentDirection == LOW) {
-        points[point].newDirection = HIGH;
+      // Only proceed if the new direction is different to the current direction
+      if ((points[point].currentDirection == LOW && Direction == 1) || (points[point].currentDirection == HIGH && Direction == 0)) {
+        // If new direction is 0 (close) but our current direction is HIGH (throw), flag the change and record the time for pulsing
+        if (Direction == 0 && points[point].currentDirection == HIGH) {
+          points[point].newDirection = LOW;
+        // If new direction is 1 (throw) but our current direction is LOW (close), flag the change and record the time for pulsing
+        } else if (Direction == 1 && points[point].currentDirection == LOW) {
+          points[point].newDirection = HIGH;
+        }
+        Serial.println("Testing acting on subsequent same direction commands which should be ignored");
+        Serial.println((String)"currentDirection: " + points[point].currentDirection);
+        Serial.println((String)"newDirection: " + points[point].currentDirection);
+        Serial.println((String)"currentDccMillis: " + currentDccMillis);
+        Serial.println((String)"lastSwitchEndMillis: " + points[point].lastSwitchEndMillis);
+        long testMillis = currentDccMillis - points[point].lastSwitchEndMillis;
+        Serial.println((String)"currentDccMillis - lastSwitchEndMillies: " + testMillis);
+        Serial.println((String)"switchingDelay: " + switchingDelay);
+        Serial.println((String)"Setting turnout at address " + Addr + " (point " + point + ") to " + Direction);
+        // Perform our pin digital write depending on motor config
+        #ifdef FUNDUMOTO
+          digitalWrite(points[point].directionPin, points[point].newDirection);
+        #elif defined(L293D)
+          if (points[point].newDirection == LOW) {
+            digitalWrite(points[point].directionPin1, HIGH);
+            digitalWrite(points[point].directionPin2, LOW);
+          } else if (points[point].newDirection == HIGH) {
+            digitalWrite(points[point].directionPin1, LOW);
+            digitalWrite(points[point].directionPin2, HIGH);
+        #endif
+        // Set speed to start switching and record when it started so we can pulse correctly
+        analogWrite(points[point].speedPin, 255);
+        points[point].lastSwitchStartMillis = currentDccMillis;
       }
-      Serial.println("Testing acting on subsequent same direction commands which should be ignored");
-      Serial.println((String)"currentDirection: " + points[point].currentDirection);
-      Serial.println((String)"newDirection: " + points[point].currentDirection);
-      Serial.println((String)"currentDccMillis: " + currentDccMillis);
-      Serial.println((String)"lastSwitchEndMillis: " + points[point].lastSwitchEndMillis);
-      long testMillis = currentDccMillis - points[point].lastSwitchEndMillis;
-      Serial.println((String)"currentDccMillis - lastSwitchEndMillies: " + testMillis);
-      Serial.println((String)"switchingDelay: " + switchingDelay);
-      Serial.println((String)"Setting turnout at address " + Addr + " (point " + point + ") to " + Direction);
-      // Perform our pin digital write depending on motor config
-      #ifdef FUNDUMOTO
-        digitalWrite(points[point].directionPin, points[point].newDirection);
-      #elif defined(L293D)
-        if (points[point].newDirection == LOW) {
-          digitalWrite(points[point].directionPin1, HIGH);
-          digitalWrite(points[point].directionPin2, LOW);
-        } else if (points[point].newDirection == HIGH) {
-          digitalWrite(points[point].directionPin1, LOW);
-          digitalWrite(points[point].directionPin2, HIGH);
-      #endif
-      // Set speed to start switching and record when it started so we can pulse correctly
-      analogWrite(points[point].speedPin, 255);
-      points[point].lastSwitchStartMillis = currentDccMillis;
     }
   }
 }
