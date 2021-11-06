@@ -24,8 +24,8 @@ NmraDcc  Dcc;
 DCC_MSG  Packet;
 
 // Define the motor controller in use, uncomment the appropriate one only (not both)
-#define FUNDUMOTO                             // Use this for two points with the FunduMoto shield
-//#define L293D                                 // Use this for four points with the L293D ICs
+//#define FUNDUMOTO                             // Use this for two points with the FunduMoto shield
+#define L293D                                 // Use this for four points with the L293D ICs
 
 // Define our global variables
 #define DCC_PIN     2                         // DCC input interupt pin
@@ -148,6 +148,7 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
           } else if (points[point].newDirection == HIGH) {
             digitalWrite(points[point].directionPin1, LOW);
             digitalWrite(points[point].directionPin2, HIGH);
+          }
         #endif
         // Set speed to start switching and record when it started so we can pulse correctly
         analogWrite(points[point].speedPin, 255);
