@@ -228,8 +228,11 @@ void setup()
   BaseTurnoutAddress = (((Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB) * 64) + Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB) - 1) * 4) + 1  ;
   // Initialise our turnouts
   initTurnouts();
-  uint8_t lastTurnout = NUM_TURNOUTS - 1;
-  Serial.println((String)"Init Done, base turnout address is: " + BaseTurnoutAddress + " and last turnout address is " + BaseTurnoutAddress + lastTurnout);
+  uint8_t lastTurnout = BaseTurnoutAddress + NUM_TURNOUTS - 1;
+  Serial.print((String)"Init Done, base turnout address is: ");
+  Serial.print(BaseTurnoutAddress, DEC);
+  Serial.print(" and last turnout address is ");
+  Serial.println(lastTurnout, DEC);
 }
 
 void loop()
