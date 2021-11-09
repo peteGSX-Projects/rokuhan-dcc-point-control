@@ -200,6 +200,17 @@ void processTurnouts() {
   }
 }
 
+uint16_t getBaseAddress() {
+  // Function to retrieve the base accessory address from the EEPROM and validate it
+  // Retrieve the current values from the EEPROM
+  uint16_t eepromBaseTurnoutAddress = (((Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB) * 64) + Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB) - 1) * 4) + 1  ;
+  // Validate that this returns an actual valid DCC Decoder accessory base address here
+
+  // If it's not valid, print a message to the serial port and return a base address of 1 instead
+  //return eepromBaseTurnoutAddress;
+  return 1;
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -221,13 +232,11 @@ void setup()
 #else
   Dcc.pin(0, DCC_PIN, 1);
 #endif
-  
   // Call the main DCC Init function to enable the DCC Receiver
   Dcc.init( MAN_ID_DIY, 10, CV29_ACCESSORY_DECODER | CV29_OUTPUT_ADDRESS_MODE, 0 );
-
-  //BaseTurnoutAddress = (((Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB) * 64) + Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB) - 1) * 4) + 1  ;
-  BaseTurnoutAddress = 1;
-  // Initialise our turnouts
+  // Get our base turnout address
+  BaseTurnoutAddress = getBaseAddress();
+   // Initialise our turnouts
   initTurnouts();
   uint8_t lastTurnout = BaseTurnoutAddress + NUM_TURNOUTS - 1;
   Serial.print((String)"Init Done, base turnout address is: ");
