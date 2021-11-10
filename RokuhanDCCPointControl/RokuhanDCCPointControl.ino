@@ -203,12 +203,25 @@ void processTurnouts() {
 uint16_t getBaseAddress() {
   // Function to retrieve the base accessory address from the EEPROM and validate it
   // Retrieve the current values from the EEPROM
+  uint16_t cvMSB = Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB);
+  uint16_t cvLSB = Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB);
   uint16_t eepromBaseTurnoutAddress = (((Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_MSB) * 64) + Dcc.getCV(CV_ACCESSORY_DECODER_ADDRESS_LSB) - 1) * 4) + 1  ;
+  // Validate our MSB and CSB values are valid, otherwise use default decoder address of 1
+  if ((cvMSB == 0 && cvLSB == 0) || cvMSB > 7 || cvLSB > 63) {
+    Serial.println("WARNING: The EEPROM stored CVs contain invalid MSB and/or LSB values, returning default of 1");
+    Serial.print("MSB value: ");
+    Serial.print(cvMSB);
+    Serial.print("LSB value: ");
+    Serial.println(cvLSB);
+    eepromBaseTurnoutAddress = 1;
   // Validate that this returns an actual valid DCC Decoder accessory base address here
-
-  // If it's not valid, print a message to the serial port and return a base address of 1 instead
-  //return eepromBaseTurnoutAddress;
-  return 1;
+  } else if (eepromBaseTurnoutAddress + NUM_TURNOUTS >= 2041) {
+    Serial.println("WARNING: The EEPROM stored CVs contain an address that would exceed the upper valid address, returning default of 1");
+    Serial.print("Upper valid address would be: ");
+    Serial.println(eepromBaseTurnoutAddress + NUM_TURNOUTS);
+    eepromBaseTurnoutAddress = 1;
+  }
+  return eepromBaseTurnoutAddress;
 }
 
 void setup()
@@ -233,7 +246,7 @@ void setup()
   Dcc.pin(0, DCC_PIN, 1);
 #endif
   // Call the main DCC Init function to enable the DCC Receiver
-  Dcc.init( MAN_ID_DIY, 10, CV29_ACCESSORY_DECODER | CV29_OUTPUT_ADDRESS_MODE, 0 );
+  Dcc.init( MAN_ID_DIY, DCC_DECODER_VERSION_NUM, CV29_ACCESSORY_DECODER | CV29_OUTPUT_ADDRESS_MODE, 0 );
   // Get our base turnout address
   BaseTurnoutAddress = getBaseAddress();
    // Initialise our turnouts
