@@ -29,7 +29,7 @@ DCC_MSG  Packet;
 
 // Define our global variables
 #define DCC_PIN     2                         // DCC input interupt pin
-const int DccAckPin = A1;                     // DCC ACK output pin
+const int DccAckPin = 3;                      // DCC ACK output pin
 uint16_t BaseTurnoutAddress;                  // First turnout address
 long switchingPulse = 25;                     // Define the 25ms pulse required to switch
 long switchingDelay = 100;                    // Define 100ms delay between switching to avoid coil burnout
