@@ -210,7 +210,7 @@ uint16_t getBaseAddress() {
   if ((cvMSB == 0 && cvLSB == 0) || cvMSB > 7 || cvLSB > 63) {
     Serial.println("WARNING: The EEPROM stored CVs contain invalid MSB and/or LSB values, returning default of 1");
     Serial.print("MSB value: ");
-    Serial.print(cvMSB);
+    Serial.println(cvMSB);
     Serial.print("LSB value: ");
     Serial.println(cvLSB);
     eepromBaseTurnoutAddress = 1;
