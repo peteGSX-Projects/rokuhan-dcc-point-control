@@ -3,6 +3,8 @@ This repository contains the code for an Arduino based controller capable of swi
 
 This uses two L293D motor controller ICs to control the points.
 
+The code complies with the NMRA standard setting direction 1 for Closed, and 0 for Thrown.
+
 # Instructions
 
 Rokuhan points require a very brief pulse to switch the points direction only, and continuous current will burn the switch motor out. This code has been written to cater for this.

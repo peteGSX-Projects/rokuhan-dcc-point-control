@@ -9,6 +9,10 @@ Define the MOTOR_CONTROLLER variable to select the above option:
 - #define FUNDUMOTO // Use this for two points with the FunduMoto shield
 - #define L293D     // Use this for four points with the L293D ICs
 
+Turnout direction is set according to the NMRA standard:
+- 1 = close
+- 0 = throw
+
 This is based on these example sketches supplied with the NMRA DCC library:
 - NmraDccAccessoryDecoder_1
 - NmraDccAccessoryDecoder_Pulsed_8
@@ -43,8 +47,8 @@ long switchingDelay = 100;                    // Define 100ms delay between swit
   typedef struct {
     byte directionPin;                    // pin to control direction
     byte speedPin;                        // pin to control speed
-    byte currentDirection;                // current direction of the point (LOW = close, HIGH = throw)
-    byte newDirection;                    // new direction of the point (LOW = close, HIGH = throw)
+    bool currentDirection;                // current direction of the point (1 = close, 0 = throw)
+    bool newDirection;                    // new direction of the point (1 = close, 0 = throw)
     unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
     unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
   } point_def;
@@ -55,8 +59,8 @@ long switchingDelay = 100;                    // Define 100ms delay between swit
     byte directionPin1;                   // pin to connect to input 1/3 on the L293D
     byte directionPin2;                   // pin to connect to input 2/4 on the L293D
     byte speedPin;                        // pin to connect to enable 1/2 on the L293D
-    byte currentDirection;                // current direction of the point (LOW = close, HIGH = throw)
-    byte newDirection;                    // new direction of the point (LOW = close, HIGH = throw)
+    bool currentDirection;                // current direction of the point (1 = close, 0 = throw)
+    bool newDirection;                    // new direction of the point (1 = close, 0 = throw)
     unsigned long lastSwitchStartMillis;  // variable for the last time it was switched
     unsigned long lastSwitchEndMillis;    // variable for the last time it switching ended
   } point_def;
@@ -129,23 +133,27 @@ void notifyDccAccTurnoutOutput( uint16_t Addr, uint8_t Direction, uint8_t Output
     // Flag the change if our turnout's new and current position match, and if we've exceeded the delay to the next switching time
     if (points[point].currentDirection == points[point].newDirection && currentDccMillis - points[point].lastSwitchEndMillis > switchingDelay) {
       // Only proceed if the new direction is different to the current direction
-      if ((points[point].currentDirection == LOW && Direction == 1) || (points[point].currentDirection == HIGH && Direction == 0)) {
-        // If new direction is 0 (close) but our current direction is HIGH (throw), flag the change and record the time for pulsing
-        if (Direction == 0 && points[point].currentDirection == HIGH) {
-          points[point].newDirection = LOW;
-        // If new direction is 1 (throw) but our current direction is LOW (close), flag the change and record the time for pulsing
-        } else if (Direction == 1 && points[point].currentDirection == LOW) {
-          points[point].newDirection = HIGH;
+      if ((points[point].currentDirection == 0 && Direction == 1) || (points[point].currentDirection == 1 && Direction == 0)) {
+        // If new direction is 0 (throw) but our current direction is 1 (close), flag the change and record the time for pulsing
+        if (Direction == 0 && points[point].currentDirection == 1) {
+          points[point].newDirection = 0;
+        // If new direction is 1 (close) but our current direction is 0 (throw), flag the change and record the time for pulsing
+        } else if (Direction == 1 && points[point].currentDirection == 0) {
+          points[point].newDirection = 1;
         }
         Serial.println((String)"Setting turnout at address " + Addr + " (point " + point + ") to " + Direction);
         // Perform our pin digital write depending on motor config
         #ifdef FUNDUMOTO
-          digitalWrite(points[point].directionPin, points[point].newDirection);
+          if (points[point].newDirection == 1) {
+            digitalWrite(points[point].directionPin, HIGH);
+          } else if (points[point].newDirection == 0) {
+            digitalWrite(points[point].directionPin, LOW);
+          }
         #elif defined(L293D)
-          if (points[point].newDirection == LOW) {
+          if (points[point].newDirection == 1) {
             digitalWrite(points[point].directionPin1, HIGH);
             digitalWrite(points[point].directionPin2, LOW);
-          } else if (points[point].newDirection == HIGH) {
+          } else if (points[point].newDirection == 0) {
             digitalWrite(points[point].directionPin1, LOW);
             digitalWrite(points[point].directionPin2, HIGH);
           }
@@ -162,20 +170,20 @@ void initTurnouts() {
   // Function to initialise the turnout pins etc.
   #ifdef FUNDUMOTO
     Serial.println((String)"Initialising FunduMoto turnouts");
-    points[0] = (point_def) {12,10,LOW,LOW,0,0};
-    points[1] = (point_def) {13,11,LOW,LOW,0,0};
+    points[0] = (point_def) {12,10,1,1,0,0};
+    points[1] = (point_def) {13,11,1,1,0,0};
     for (int point = 0; point < NUM_TURNOUTS; point++) {
       pinMode(points[point].directionPin, OUTPUT);
       pinMode(points[point].speedPin, OUTPUT);
-      digitalWrite(points[point].directionPin, LOW);
+      digitalWrite(points[point].directionPin, HIGH);
       analogWrite(points[point].speedPin, 0);
     }
   #elif defined(L293D)
     Serial.println((String)"Initialising L293D turnouts");
-    points[0] = (point_def) {A4,A5,5,LOW,LOW,0,0};
-    points[1] = (point_def) {4,7,6,LOW,LOW,0,0};
-    points[2] = (point_def) {8,11,9,LOW,LOW,0,0};
-    points[3] = (point_def) {12,13,10,LOW,LOW,0,0};
+    points[0] = (point_def) {A4,A5,5,1,1,0,0};
+    points[1] = (point_def) {4,7,6,1,1,0,0};
+    points[2] = (point_def) {8,11,9,1,1,0,0};
+    points[3] = (point_def) {12,13,10,1,1,0,0};
     for (int point = 0; point < NUM_TURNOUTS; point++) {
       pinMode(points[point].directionPin1, OUTPUT);
       pinMode(points[point].directionPin2, OUTPUT);
@@ -256,6 +264,10 @@ void setup()
   Serial.print(BaseTurnoutAddress, DEC);
   Serial.print(" and last turnout address is ");
   Serial.println(lastTurnout, DEC);
+  // "Send" a DCC packet to set all turnouts closed
+  for (uint8_t p; p < NUM_TURNOUTS; p++) {
+    notifyDccAccTurnoutOutput(BaseTurnoutAddress + p, 1, 1);
+  }
 }
 
 void loop()
