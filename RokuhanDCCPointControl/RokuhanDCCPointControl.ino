@@ -170,8 +170,8 @@ void initTurnouts() {
   // Function to initialise the turnout pins etc.
   #ifdef FUNDUMOTO
     Serial.println((String)"Initialising FunduMoto turnouts");
-    points[0] = (point_def) {12,10,1,1,0,0};
-    points[1] = (point_def) {13,11,1,1,0,0};
+    points[0] = (point_def) {12,10,0,0,0,0};
+    points[1] = (point_def) {13,11,0,0,0,0};
     for (int point = 0; point < NUM_TURNOUTS; point++) {
       pinMode(points[point].directionPin, OUTPUT);
       pinMode(points[point].speedPin, OUTPUT);
@@ -180,10 +180,10 @@ void initTurnouts() {
     }
   #elif defined(L293D)
     Serial.println((String)"Initialising L293D turnouts");
-    points[0] = (point_def) {A4,A5,5,1,1,0,0};
-    points[1] = (point_def) {4,7,6,1,1,0,0};
-    points[2] = (point_def) {8,11,9,1,1,0,0};
-    points[3] = (point_def) {12,13,10,1,1,0,0};
+    points[0] = (point_def) {A4,A5,5,0,0,0,0};
+    points[1] = (point_def) {4,7,6,0,0,0,0};
+    points[2] = (point_def) {8,11,9,0,0,0,0};
+    points[3] = (point_def) {12,13,10,0,0,0,0};
     for (int point = 0; point < NUM_TURNOUTS; point++) {
       pinMode(points[point].directionPin1, OUTPUT);
       pinMode(points[point].directionPin2, OUTPUT);
